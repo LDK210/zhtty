@@ -13,3 +13,7 @@ node_modules/
 dist/
 .vite/
 coverage/
+*.log
+.browser-*/
+.browser-profile*/
+browser-*.png
