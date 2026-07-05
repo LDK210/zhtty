@@ -19,7 +19,34 @@ AI 简历筛选 + 面试邀约 Agent。系统支持创建岗位 JD、批量上�
 - File parsing: pdfplumber / PyMuPDF / python-docx
 - Deployment: Docker Compose + nginx
 
-## 本地开发
+## 本地启动
+
+Windows 一键启动：
+
+```powershell
+.\start.ps1
+```
+
+或使用批处理：
+
+```bat
+start.bat
+```
+
+脚本会按需创建 `backend/.venv`、安装后端依赖、安装前端依赖，并分别启动：
+
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:5173`
+
+如果依赖已经安装完成，可以跳过安装步骤：
+
+```powershell
+.\start.ps1 -SkipInstall
+```
+
+关闭脚本打开的 PowerShell 窗口即可停止本地服务。
+
+## 手动本地开发
 
 后端：
 
@@ -55,6 +82,28 @@ http://localhost:8080
 ```
 
 Docker 环境中前端 nginx 会把 `/api` 代理到后端容器，避免手动配置跨域和 API 地址。
+
+## 源码打包
+
+生成可交付源码包：
+
+```powershell
+.\scripts\package-source.ps1
+```
+
+默认输出：
+
+```text
+hirepilot-source.zip
+```
+
+也可以指定输出路径：
+
+```powershell
+.\scripts\package-source.ps1 -OutputPath .\artifacts\hirepilot-source.zip
+```
+
+打包脚本会排除 `.git/`、`.codex/`、`.agents/`、`.venv/`、`node_modules/`、`dist/`、`uploads/`、数据库文件、日志文件和其他本地运行产物。
 
 ## AI 配置
 
