@@ -27,6 +27,9 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    from app.models import agent_log, candidate, job, resume, score  # noqa: F401
+    """Load ORM models used by Alembic migration metadata.
 
-    Base.metadata.create_all(bind=engine)
+    Database schema changes are managed with Alembic. Run ``alembic upgrade
+    head`` before starting the application against a new database.
+    """
+    from app.models import agent_log, candidate, job, resume, score  # noqa: F401

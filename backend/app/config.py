@@ -3,7 +3,11 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 class Settings(BaseSettings):
@@ -21,6 +25,23 @@ class Settings(BaseSettings):
     debug: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @field_validator("database_url")
+    @classmethod
+    def resolve_relative_sqlite_path(cls, database_url: str) -> str:
+        """Anchor relative SQLite URLs to the backend directory, not process CWD."""
+        sqlite_prefix = "sqlite:///"
+        if not database_url.startswith(sqlite_prefix):
+            return database_url
+
+        database_path = database_url[len(sqlite_prefix) :]
+        if database_path in {":memory:", ""} or database_path.startswith("file:"):
+            return database_url
+
+        path = Path(database_path)
+        if path.is_absolute():
+            return database_url
+        return f"{sqlite_prefix}{(BACKEND_DIR / path).resolve().as_posix()}"
 
     @property
     def mock_mode(self) -> bool:

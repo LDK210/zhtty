@@ -86,7 +86,7 @@ async def handle_unexpected_error(request: Request, exc: Exception) -> JSONRespo
 
 @app.on_event("startup")
 def on_startup() -> None:
-    """Create local storage and database tables when the application starts."""
+    """Create local storage after database migrations have been applied."""
     settings.upload_path.mkdir(parents=True, exist_ok=True)
     init_db()
 

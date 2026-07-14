@@ -58,6 +58,7 @@ cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+.\.venv\Scripts\alembic.exe upgrade head
 uvicorn app.main:app --reload
 ```
 
@@ -70,7 +71,27 @@ $env:VITE_API_BASE_URL="http://localhost:8000"
 npm run dev
 ```
 
-本地后端默认使用 SQLite `hirepilot.db`，启动时通过 `SQLAlchemy Base.metadata.create_all` 自动建表。MVP 暂不引入 Alembic，后续生产化再升级 migrations。
+本地后端默认使用 SQLite `hirepilot.db`。数据库结构由 Alembic 管理；首次启动新数据库前请先执行 `alembic upgrade head`。
+
+## 数据库迁移
+
+在 `backend` 目录执行以下命令：
+
+```powershell
+# 将数据库升级到最新结构
+.\.venv\Scripts\alembic.exe upgrade head
+
+# 查看当前迁移版本
+.\.venv\Scripts\alembic.exe current
+
+# 模型变更后创建一份待审核的迁移
+.\.venv\Scripts\alembic.exe revision --autogenerate -m "describe schema change"
+
+# 回退一版（执行前请先备份生产数据库）
+.\.venv\Scripts\alembic.exe downgrade -1
+```
+
+已有的 SQLite `hirepilot.db` 若尚未包含 `alembic_version`，首次运行 `upgrade head` 会先校验全部核心表、字段、类型、非空约束、外键和索引。只有与当前初始迁移兼容时才会写入迁移版本记录；不兼容时命令会安全失败，不会删除、重建或清空现有数据。历史中遗留的可空附加字段会被保留并记录警告，不影响 stamp。生产数据库执行迁移前仍应进行备份。
 
 ## Docker 启动
 

@@ -61,6 +61,14 @@ if (-not $SkipInstall) {
 
 $env:VITE_API_BASE_URL = "http://localhost:8000"
 
+Write-Host "Applying backend database migrations..."
+Push-Location $BackendDir
+& $VenvPython -m alembic upgrade head
+if ($LASTEXITCODE -ne 0) {
+    throw "Database migration failed with exit code $LASTEXITCODE. Backend startup was cancelled."
+}
+Pop-Location
+
 Write-Host "Starting HirePilot backend at http://localhost:8000"
 Start-NamedProcess `
     -Title "HirePilot Backend" `
