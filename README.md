@@ -10,6 +10,9 @@ AI 简历筛选 + 面试邀约 Agent。系统支持创建岗位 JD、批量上�
 - 使用 Pydantic 固定 `StructuredJD`、`StructuredCandidate`、`ScoreResult` 三类结构化输出。
 - 后端校验评分维度，重新计算总分和推荐级别，不完全信任模型输出。
 - 没有 `OPENAI_API_KEY` 时自动进入 Mock 模式，基于关键词稳定生成候选人、评分、问题和邀约。
+- 已完成或失败的任务可以安全重跑；每份简历只保留一套最新有效的候选人和评分结果。
+- API 错误统一返回 `code`、`message`、`request_id`，并在响应头返回 `X-Request-ID`。
+- HTTP 请求和后台任务使用 JSON 结构化应用日志，且不记录简历全文、授权头或 API Key。
 
 ## 技术栈
 
@@ -134,6 +137,25 @@ DeepSeek、通义等兼容 OpenAI Chat Completions 的服务可通过 `OPENAI_BA
 - `GET /api/jobs/{job_id}/results` 获取候选人排名。
 - `GET /api/candidates/{candidate_id}` 获取候选人详情。
 - `GET /api/jobs/{job_id}/logs` 获取 Agent 执行日志。
+
+错误响应格式：
+
+```json
+{
+  "code": "validation_error",
+  "message": "Request validation failed.",
+  "request_id": "..."
+}
+```
+
+## 测试
+
+后端测试使用独立临时 SQLite 数据库和临时上传目录，不会写入本地 `hirepilot.db` 或 `uploads/`：
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest tests -q
+```
 
 `/run` 校验规则：
 

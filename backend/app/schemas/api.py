@@ -13,6 +13,14 @@ class JobCreate(BaseModel):
     jd_text: str = Field(min_length=1)
 
 
+class ErrorResponse(BaseModel):
+    """Provide a stable, non-sensitive error payload for API clients."""
+
+    code: str
+    message: str
+    request_id: str
+
+
 class ResumeRead(BaseModel):
     id: int
     original_filename: str

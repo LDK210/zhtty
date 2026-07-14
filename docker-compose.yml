@@ -25,6 +25,8 @@ services:
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       CORS_ORIGINS: http://localhost:5173,http://localhost:8080,http://localhost
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DEBUG: ${DEBUG:-false}
     volumes:
       - backend_uploads:/app/uploads
     ports:

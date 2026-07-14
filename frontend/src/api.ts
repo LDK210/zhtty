@@ -5,8 +5,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, options);
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.detail || `Request failed with ${response.status}`);
+    const payload = await response.json().catch(() => ({} as { detail?: string; message?: string }));
+    throw new Error(payload.message || payload.detail || `Request failed with ${response.status}`);
   }
   return response.json();
 }
