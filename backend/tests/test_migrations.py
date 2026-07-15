@@ -12,7 +12,7 @@ from alembic.config import Config
 from alembic.util.exc import CommandError
 from sqlalchemy import create_engine, inspect, text
 
-from app.db.migration_compat import INITIAL_REVISION, VERSION_TABLE_NAME, validate_legacy_schema
+from app.db.migration_compat import INITIAL_REVISION, VERSION_TABLE_NAME
 from app.db.session import Base
 from app.config import BACKEND_DIR, Settings
 
@@ -35,7 +35,7 @@ def _file_hash(path: Path) -> str:
 
 
 def test_upgrade_head_creates_complete_schema(tmp_path: Path) -> None:
-    """A fresh SQLite database upgrades to the initial revision successfully."""
+    """A fresh SQLite database upgrades to the full current schema successfully."""
     database_url = _sqlite_url(tmp_path / "fresh.db")
     command.upgrade(_alembic_config(database_url), "head")
     command.upgrade(_alembic_config(database_url), "head")
@@ -44,14 +44,20 @@ def test_upgrade_head_creates_complete_schema(tmp_path: Path) -> None:
     engine = create_engine(database_url)
     try:
         inspector = inspect(engine)
-        assert {"jobs", "resumes", "candidates", "scores", "agent_logs"} <= set(
-            inspector.get_table_names()
-        )
+        assert {
+            "jobs",
+            "resumes",
+            "candidates",
+            "scores",
+            "agent_logs",
+            "talent_candidates",
+            "resume_versions",
+            "applications",
+        } <= set(inspector.get_table_names())
         with engine.connect() as connection:
             assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-                INITIAL_REVISION
+                "0002_add_talent_candidates_applications"
             )
-            assert validate_legacy_schema(connection) == []
     finally:
         engine.dispose()
 
@@ -59,10 +65,12 @@ def test_upgrade_head_creates_complete_schema(tmp_path: Path) -> None:
 def test_compatible_legacy_schema_is_safely_stamped(tmp_path: Path) -> None:
     """A matching pre-Alembic schema gains only an Alembic version record."""
     database_url = _sqlite_url(tmp_path / "legacy-compatible.db")
+    config = _alembic_config(database_url)
+    command.upgrade(config, INITIAL_REVISION)
     engine = create_engine(database_url)
     try:
-        Base.metadata.create_all(bind=engine)
         with engine.begin() as connection:
+            connection.execute(text("DROP TABLE alembic_version"))
             connection.execute(text("ALTER TABLE scores ADD COLUMN assessment_json JSON"))
             connection.execute(
                 text(
@@ -76,16 +84,21 @@ def test_compatible_legacy_schema_is_safely_stamped(tmp_path: Path) -> None:
     finally:
         engine.dispose()
 
-    command.upgrade(_alembic_config(database_url), "head")
+    command.upgrade(config, "head")
 
     verified_engine = create_engine(database_url)
     try:
         inspector = inspect(verified_engine)
-        assert set(inspector.get_table_names()) == before_tables | {VERSION_TABLE_NAME}
+        assert set(inspector.get_table_names()) == before_tables | {
+            VERSION_TABLE_NAME,
+            "talent_candidates",
+            "resume_versions",
+            "applications",
+        }
         assert "assessment_json" in {column["name"] for column in inspector.get_columns("scores")}
         with verified_engine.connect() as connection:
             assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-                INITIAL_REVISION
+                "0002_add_talent_candidates_applications"
             )
             assert connection.execute(text("SELECT title FROM jobs WHERE id = 1")).scalar_one() == "Preserved job"
     finally:

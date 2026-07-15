@@ -13,12 +13,22 @@ from app.db.session import Base
 
 INITIAL_REVISION = "0001_initial_schema"
 VERSION_TABLE_NAME = "alembic_version"
+INITIAL_TABLE_NAMES = frozenset({"agent_logs", "candidates", "jobs", "resumes", "scores"})
 logger = logging.getLogger(__name__)
 
 
 def _load_model_metadata() -> None:
     """Import all ORM modules so ``Base.metadata`` contains every table."""
-    from app.models import agent_log, candidate, job, resume, score  # noqa: F401
+    from app.models import (  # noqa: F401
+        agent_log,
+        application,
+        candidate,
+        job,
+        resume,
+        resume_version,
+        score,
+        talent_candidate,
+    )
 
 
 def _type_matches(actual_type: object, expected_type: object) -> bool:
@@ -61,7 +71,7 @@ def validate_legacy_schema(connection: Connection) -> list[str]:
     """
     _load_model_metadata()
     inspector = inspect(connection)
-    expected_tables = set(Base.metadata.tables)
+    expected_tables = INITIAL_TABLE_NAMES
     actual_tables = set(inspector.get_table_names()) - {VERSION_TABLE_NAME}
     errors: list[str] = []
 

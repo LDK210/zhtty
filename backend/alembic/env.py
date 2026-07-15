@@ -10,7 +10,16 @@ from sqlalchemy import engine_from_config, pool
 from app.config import get_settings
 from app.db.migration_compat import prepare_legacy_database
 from app.db.session import Base
-from app.models import agent_log, candidate, job, resume, score  # noqa: F401
+from app.models import (  # noqa: F401
+    agent_log,
+    application,
+    candidate,
+    job,
+    resume,
+    resume_version,
+    score,
+    talent_candidate,
+)
 
 config = context.config
 
