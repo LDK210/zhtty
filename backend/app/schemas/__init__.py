@@ -16,6 +16,7 @@ from app.schemas.versions import (
     HiringCriteriaVersionRead,
     HiringCriteriaVersionUpdate,
 )
+from app.schemas.audit import HRDecisionCreate, HRDecisionRead, PipelineEventCreate, PipelineEventRead
 
 __all__ = [
     "ApplicationCreate",
@@ -26,6 +27,10 @@ __all__ = [
     "HiringCriteriaVersionCreate",
     "HiringCriteriaVersionRead",
     "HiringCriteriaVersionUpdate",
+    "HRDecisionCreate",
+    "HRDecisionRead",
+    "PipelineEventCreate",
+    "PipelineEventRead",
     "ResumeVersionCreate",
     "ResumeVersionRead",
     "TalentCandidateCreate",

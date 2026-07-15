@@ -17,6 +17,8 @@ from app.models import (  # noqa: F401
     candidate,
     job,
     hiring_criteria_version,
+    hr_decision,
+    pipeline_event,
     resume,
     resume_version,
     score,
