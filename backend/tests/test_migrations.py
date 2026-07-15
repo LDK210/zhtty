@@ -53,10 +53,12 @@ def test_upgrade_head_creates_complete_schema(tmp_path: Path) -> None:
             "talent_candidates",
             "resume_versions",
             "applications",
+            "hiring_criteria_versions",
+            "ai_analysis_versions",
         } <= set(inspector.get_table_names())
         with engine.connect() as connection:
             assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-                "0002_add_talent_candidates_applications"
+                "0003_add_criteria_and_ai_analysis_versions"
             )
     finally:
         engine.dispose()
@@ -94,11 +96,13 @@ def test_compatible_legacy_schema_is_safely_stamped(tmp_path: Path) -> None:
             "talent_candidates",
             "resume_versions",
             "applications",
+            "hiring_criteria_versions",
+            "ai_analysis_versions",
         }
         assert "assessment_json" in {column["name"] for column in inspector.get_columns("scores")}
         with verified_engine.connect() as connection:
             assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
-                "0002_add_talent_candidates_applications"
+                "0003_add_criteria_and_ai_analysis_versions"
             )
             assert connection.execute(text("SELECT title FROM jobs WHERE id = 1")).scalar_one() == "Preserved job"
     finally:

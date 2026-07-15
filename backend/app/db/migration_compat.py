@@ -21,9 +21,11 @@ def _load_model_metadata() -> None:
     """Import all ORM modules so ``Base.metadata`` contains every table."""
     from app.models import (  # noqa: F401
         agent_log,
+        ai_analysis_version,
         application,
         candidate,
         job,
+        hiring_criteria_version,
         resume,
         resume_version,
         score,

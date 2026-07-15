@@ -12,9 +12,11 @@ from app.db.migration_compat import prepare_legacy_database
 from app.db.session import Base
 from app.models import (  # noqa: F401
     agent_log,
+    ai_analysis_version,
     application,
     candidate,
     job,
+    hiring_criteria_version,
     resume,
     resume_version,
     score,
