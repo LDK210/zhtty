@@ -5,7 +5,9 @@ from io import BytesIO
 from docx import Document
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
+from sqlalchemy.exc import OperationalError
 
+from app import main
 from app.api import routes
 from app.db.session import SessionLocal
 from app.models import AgentLog, Candidate, Job, JobStatus, Resume, ResumeStatus, Score
@@ -67,6 +69,52 @@ def test_create_job(client: TestClient) -> None:
     response = client.get(f"/api/jobs/{job_id}")
     assert response.status_code == 200
     assert response.json()["status"] == "draft"
+
+
+def test_health_reports_process_liveness_without_database_access(client: TestClient, monkeypatch: MonkeyPatch) -> None:
+    """Keep the liveness endpoint independent from database availability."""
+    def fail_if_called() -> None:
+        """Fail the test if liveness opens a database connection."""
+        raise AssertionError("health must not access the database")
+
+    monkeypatch.setattr(main.engine, "connect", fail_if_called)
+    request_id = "health-request"
+    response = client.get("/health", headers={"X-Request-ID": request_id})
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert response.headers["X-Request-ID"] == request_id
+
+
+def test_ready_reports_database_availability(client: TestClient) -> None:
+    """Return ready when the isolated test database accepts a lightweight query."""
+    response = client.get("/ready")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+    assert response.headers["X-Request-ID"]
+
+
+def test_ready_returns_safe_503_when_database_is_unavailable(client: TestClient, monkeypatch: MonkeyPatch) -> None:
+    """Hide database connection details when readiness cannot query the database."""
+    def unavailable_connect() -> None:
+        """Simulate a database driver failure containing unsafe connection details."""
+        raise OperationalError("SELECT 1", {}, RuntimeError("postgres://user:secret@private-host"))
+
+    monkeypatch.setattr(main.engine, "connect", unavailable_connect)
+    request_id = "ready-failure-request"
+    response = client.get("/ready", headers={"X-Request-ID": request_id})
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "code": "service_unavailable",
+        "message": "Service is not ready.",
+        "request_id": request_id,
+    }
+    assert response.headers["X-Request-ID"] == request_id
+    response_text = response.text.lower()
+    for unsafe_value in ("secret", "private-host", "postgres", "traceback"):
+        assert unsafe_value not in response_text
 
 
 def test_upload_rejects_unsupported_format(client: TestClient) -> None:

@@ -107,6 +107,23 @@ http://localhost:8080
 
 Docker 环境中前端 nginx 会把 `/api` 代理到后端容器，避免手动配置跨域和 API 地址。
 
+## Docker deployment baseline
+
+Copy the repository-root `.env.example` to `.env` before changing Docker Compose values. The checked-in `hirepilot_dev` user and `hirepilot_dev_password_change_me` password are **local-development examples only** and are not production-safe. For production, use a unique high-entropy PostgreSQL password, set `DEBUG=false`, keep PostgreSQL off the host network unless explicitly required, and provide secrets through a secure deployment secret store.
+
+Docker Compose keeps PostgreSQL and uploaded files in named volumes. The database has no host port mapping by default; use `docker compose exec postgres psql ...` for local diagnostics instead of exposing it publicly. The backend runs Alembic before Uvicorn and will not start if migration fails.
+
+Health probes:
+
+- `GET /health` checks only whether the API process is alive.
+- `GET /ready` performs a lightweight database query and returns a safe `503` response if PostgreSQL is unavailable.
+
+Environment variables used for deployment:
+
+- `DATABASE_URL`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+- `LOG_LEVEL`, `DEBUG`
+- `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`
+
 ## 源码打包
 
 生成可交付源码包：

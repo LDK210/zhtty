@@ -6,12 +6,15 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 
 from app.api.routes import router
 from app.config import get_settings
 from app.db import init_db
+from app.db.session import engine
 from app.exceptions import AppError
 from app.observability import RequestLoggingMiddleware, configure_logging, logger
 
@@ -93,8 +96,23 @@ def on_startup() -> None:
 
 @app.get("/health")
 def health() -> dict:
-    """Return a minimal health response for local and container checks."""
-    return {"status": "ok", "mock_mode": settings.mock_mode}
+    """Return process liveness without opening a database connection."""
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+def readiness() -> dict:
+    """Return readiness only when a lightweight database query succeeds."""
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        logger.warning(
+            "Readiness database check failed",
+            extra={"method": "GET", "path": "/ready", "status_code": 503},
+        )
+        raise AppError(code="service_unavailable", message="Service is not ready.", status_code=503)
+    return {"status": "ready"}
 
 
 app.include_router(router)
