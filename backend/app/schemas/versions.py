@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 HiringCriteriaStatus = Literal["draft", "active", "archived"]
 AnalysisStage = Literal[
@@ -53,6 +53,50 @@ class HiringCriteriaVersionRead(HiringCriteriaVersionCreate):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class HiringCriteriaDraftCreate(BaseModel):
+    """Accept client-controlled fields for creating a criteria draft only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_jd_text: str | None = Field(default=None, min_length=1, max_length=50_000)
+    criteria_json: dict[str, Any] = Field(default_factory=dict)
+    created_by: str | None = Field(default=None, max_length=255)
+
+
+class HiringCriteriaDraftUpdate(BaseModel):
+    """Accept one or more mutable fields of an existing criteria draft."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_jd_text: str | None = Field(default=None, min_length=1, max_length=50_000)
+    criteria_json: dict[str, Any] | None = None
+    created_by: str | None = Field(default=None, max_length=255)
+
+    @model_validator(mode="after")
+    def require_one_update(self) -> "HiringCriteriaDraftUpdate":
+        """Reject empty PATCH bodies before opening a database transaction."""
+        if not self.model_fields_set:
+            raise ValueError("At least one mutable field must be provided.")
+        return self
+
+
+class HiringCriteriaDraftRead(BaseModel):
+    """Expose the persisted current criteria draft without mutable server fields."""
+
+    id: int
+    job_id: int
+    version_number: int
+    status: HiringCriteriaStatus
+    source_jd_text: str
+    criteria_json: dict[str, Any]
+    created_by: str | None
+    confirmed_by: str | None
+    created_at: datetime
+    activated_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AIAnalysisVersionCreate(BaseModel):

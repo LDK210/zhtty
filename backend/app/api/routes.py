@@ -21,6 +21,8 @@ from app.schemas.api import (
     UploadResponse,
 )
 from app.services.agent_runner import run_screening_job
+from app.schemas.versions import HiringCriteriaDraftCreate, HiringCriteriaDraftRead, HiringCriteriaDraftUpdate
+from app.services.criteria_draft_service import create_draft, get_draft, update_draft
 
 router = APIRouter(prefix="/api")
 
@@ -47,6 +49,37 @@ def get_job(job_id: int, db: Session = Depends(get_db)) -> JobRead:
     """Return one job and its current progress."""
     job = _get_job_or_404(db, job_id)
     return _job_read(job)
+
+
+@router.post(
+    "/jobs/{job_id}/criteria/draft",
+    response_model=HiringCriteriaDraftRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_criteria_draft(
+    job_id: int,
+    payload: HiringCriteriaDraftCreate,
+    db: Session = Depends(get_db),
+) -> HiringCriteriaDraftRead:
+    """Create the current editable hiring-criteria draft for one job."""
+    return HiringCriteriaDraftRead.model_validate(create_draft(job_id, payload, db))
+
+
+@router.get("/jobs/{job_id}/criteria/draft", response_model=HiringCriteriaDraftRead)
+def get_criteria_draft(job_id: int, db: Session = Depends(get_db)) -> HiringCriteriaDraftRead:
+    """Return the current editable hiring-criteria draft for one job."""
+    return HiringCriteriaDraftRead.model_validate(get_draft(job_id, db))
+
+
+@router.patch("/jobs/{job_id}/criteria/draft/{criteria_version_id}", response_model=HiringCriteriaDraftRead)
+def update_criteria_draft(
+    job_id: int,
+    criteria_version_id: int,
+    payload: HiringCriteriaDraftUpdate,
+    db: Session = Depends(get_db),
+) -> HiringCriteriaDraftRead:
+    """Update permitted fields of the requested job's current criteria draft."""
+    return HiringCriteriaDraftRead.model_validate(update_draft(job_id, criteria_version_id, payload, db))
 
 
 @router.post("/jobs/{job_id}/resumes", response_model=UploadResponse)
